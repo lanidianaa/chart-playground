@@ -11,6 +11,7 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import gradient from 'chartjs-plugin-gradient'
+import { useState } from 'react'
 
 ChartJS.register(
   CategoryScale,
@@ -25,7 +26,7 @@ ChartJS.register(
 )
 
 const GoalLineChart = (props) => {
-  const options = {
+  const [options, setOptions] = useState({
     responsive: true,
     plugins: {
       legend: {
@@ -48,8 +49,6 @@ const GoalLineChart = (props) => {
       },
       tooltip: {
         enabled: false,
-        intersect: false,
-        usePointStyle: false,
         external: ({ chart, tooltip }) => {
           const ct = document.getElementById('custom-tooltip')
           const cth = document.getElementById('tooltip-title')
@@ -95,35 +94,27 @@ const GoalLineChart = (props) => {
             ctt0.style.opacity = 0
             ctt1.style.opacity = 0
           }
-
+          //   change x grid line if there's selected data
+          if (tooltip?.dataPoints && tooltip?.dataPoints.length) {
+            const xIndex = tooltip?.dataPoints[0].dataIndex
+            chart.scales.x._gridLineItems?.forEach((grids, id) => {
+              if (id === xIndex) {
+                grids.color = '#FB9825'
+                grids.width = 3
+              } else {
+                grids.color = '#E8EBEE'
+                grids.width = 1
+              }
+            })
+          } else {
+            chart.scales.x._gridLineItems?.forEach((grids) => {
+              grids.color = '#E8EBEE'
+              grids.width = 1
+            })
+          }
           return ''
         },
       },
-    },
-    events: ['mousemove', 'mouseout', 'mouseleave'],
-    onHover: (evt, _, chart) => {
-      if (evt.type === 'mouseleave' || evt.type === 'mouseout') {
-        console.log(evt, chart, _)
-      }
-
-      //   Change x gridline color based on hovered data index
-      if (_ && _.length) {
-        const xIndex = _[0].index
-        chart.scales.x._gridLineItems?.forEach((grids, id) => {
-          if (id === xIndex) {
-            grids.color = '#FB9825'
-            grids.width = 3
-          } else {
-            grids.color = '#E8EBEE'
-            grids.width = 1
-          }
-        })
-      } else {
-        chart.scales.x._gridLineItems?.forEach((grids) => {
-          grids.color = '#E8EBEE'
-          grids.width = 1
-        })
-      }
     },
     interaction: {
       intersect: false,
@@ -170,9 +161,24 @@ const GoalLineChart = (props) => {
         },
       },
     },
-  }
+  })
 
-  return <Line options={options} {...props} />
+  const handleLeave = (ev) => {
+    setOptions({
+      ...options,
+      scales: {
+        ...options.scales,
+        x: {
+          ...options.scales.x,
+          grid: {
+            drawTicks: true,
+            color: '#E8EBEE',
+          },
+        },
+      },
+    })
+  }
+  return <Line onMouseLeave={handleLeave} options={options} {...props} />
 }
 
 export default GoalLineChart
